@@ -8,9 +8,20 @@
 import UIKit
 
 class ViewController: UITableViewController {
-    var petitions = [Petition]()
     var filteredPetitions = [Petition]()
-    var filterText: String?
+    var filterText: String? {
+        didSet {
+            if oldValue != filterText {
+                updateFilteredItems()
+            }
+        }
+    }
+    
+    var petitions = [Petition]() {
+        didSet {
+            updateFilteredItems()
+        }
+    }
     
     func showError() {
         let alert = UIAlertController(
@@ -66,19 +77,27 @@ class ViewController: UITableViewController {
     func updateFilteredItems() {
         guard let filterText = filterText  else {
             filteredPetitions = petitions
+            tableView.reloadData()
             return
         }
         
         let lowercasedFilterText = filterText.lowercased()
         
-        filteredPetitions = petitions.filter { $0.title.lowercased().contains(lowercasedFilterText) || $0.body.lowercased().contains(lowercasedFilterText) }
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.filteredPetitions = self.petitions.filter { petition in
+                petition.title.lowercased().contains(lowercasedFilterText) ||
+                    petition.body.lowercased().contains(lowercasedFilterText)
+            }
+            
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
     }
     
     func updateFilter(text: String?) {
         self.filterText = text
         updateFilterButton()
-        updateFilteredItems()
-        tableView.reloadData()
     }
     
     @objc func filterButtonTapped() {
